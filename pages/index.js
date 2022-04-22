@@ -1,109 +1,71 @@
-// First, we must import the schema creator
-import createSchema from 'part:@sanity/base/schema-creator'
+import Head from 'next/head'
+import Header from '../components/Header'
+import Hero from '../components/Hero'
+import { useWeb3 } from '@3rdweb/hooks'
+import { useEffect } from 'react'
+import { client } from '../lib/sanityClient'
+import toast, { Toaster } from 'react-hot-toast'
 
-// Then import schema types from any plugins that might expose them
-import schemaTypes from 'all:part:@sanity/base/schema-type'
+const style = {
+  wrapper: ``,
+  walletConnectWrapper: `flex flex-col justify-center items-center h-screen w-screen bg-[#3b3d42] `,
+  button: `border border-[#282b2f] bg-[#2081e2] p-[0.8rem] text-xl font-semibold rounded-lg cursor-pointer text-black`,
+  details: `text-lg text-center text=[#282b2f] font-semibold mt-4`,
+}
 
-// Then we give our schema to the builder and provide the result to Sanity
-export default createSchema({
-  // We name our schema
-  name: 'default',
-  // Then proceed to concatenate our document type
-  // to the ones provided by any plugins that are installed
-  types: schemaTypes.concat(
-    [
+export default function Home() {
+  const { address, connectWallet } = useWeb3()
+
+  const welcomeUser = (userName, toastHandler = toast) => {
+    toastHandler.success(
+      `Welcome back${userName !== 'Unnamed' ? ` ${userName}` : ''}!`,
       {
-        name: 'users',
-        title: 'Users',
-        type: 'document',
-        fields: [
-          {
-            name: 'userName',
-            title: 'User Name',
-            type: 'string',
-          },
-          {
-            name: 'walletAddress',
-            title: 'Wallet Address',
-            type: 'string',
-          },
-          {
-            name: 'profileImage',
-            title: 'Profile Image',
-            type: 'image',
-          },
-          {
-            name: 'bannerImage',
-            title: 'Banner Image',
-            type: 'image',
-          },
-          {
-            name: 'twitterHandle',
-            title: 'Twitter Handle',
-            type: 'string',
-          },
-          {
-            name: 'igHandle',
-            title: 'Instagram Handle',
-            type: 'string',
-          },
-        ],
-      },
-      {
-        name: 'marketItems',
-        title: 'Market Items',
-        type: 'document',
-        fields: [
-          {
-            name: 'title',
-            title: 'Title',
-            type: 'string',
-          },
-          {
-            name: 'contractAddress',
-            title: 'Contract Address',
-            type: 'string',
-          },
-          {
-            name: 'description',
-            title: 'Description',
-            type: 'string',
-          },
-          {
-            name: 'createdBy',
-            title: 'Created By',
-            type: 'reference',
-            to: [{ type: 'users' }],
-          },
-          {
-            name: 'volumeTraded',
-            title: 'Volume Traded',
-            type: 'number',
-          },
-          {
-            name: 'floorPrice',
-            title: 'Floor Price',
-            type: 'number',
-          },
-          {
-            name: 'owners',
-            title: 'Owners',
-            type: 'array',
-            of: [{ type: 'reference', to: [{ type: 'users' }] }],
-          },
-          {
-            name: 'profileImage',
-            title: 'Profile Image',
-            type: 'image',
-          },
-          {
-            name: 'bannerImage',
-            title: 'Banner Image',
-            type: 'image',
-          },
-        ],
-      },
-    ]
-    /* Your types here! */
-  ),
-})
+        style: {
+          background: '#04111d',
+          color: '#fff',
+        },
+      }
+    )
+  }
+
+  useEffect(() => {
+    if (!address) return
+    ;(async () => {
+      const userDoc = {
+        _type: 'users',
+        _id: address,
+        userName: 'Unnamed',
+        walletAddress: address,
+      }
+
+      const result = await client.createIfNotExists(userDoc)
+
+      welcomeUser(result.userName)
+    })()
+  }, [address])
+
+  return (
+    <div className={style.wrapper}>
+      <Toaster position="top-center" reverseOrder={false} />
+      {address ? (
+        <>
+          <Header />
+          <Hero />
+        </>
+      ) : (
+        <div className={style.walletConnectWrapper}>
+          <button
+            className={style.button}
+            onClick={() => connectWallet('injected')}
+          >
+            Connect Wallet
+          </button>
+          <div className={style.details}>
+            You need Chrome to be
+            <br /> able to run this app.
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
